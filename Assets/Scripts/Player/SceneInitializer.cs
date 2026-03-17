@@ -65,16 +65,16 @@ public class SceneInitializer : MonoBehaviour
         // Add plane mesh
         var meshFilter = groundObj.AddComponent<MeshFilter>();
         var meshRenderer = groundObj.AddComponent<MeshRenderer>();
-        meshFilter.mesh = CreatePlaneMesh(10, 10);
+        meshFilter.mesh = CreatePlaneMesh(150, 150);
 
         // Material
         var material = new Material(Shader.Find("Standard"));
-        material.color = new Color(0.8f, 0.8f, 0.8f);
+        material.color = new Color(0.6f, 0.6f, 0.6f);
         meshRenderer.material = material;
 
         // Physics
         var collider = groundObj.AddComponent<BoxCollider>();
-        collider.size = new Vector3(10, 0.1f, 10);
+        collider.size = new Vector3(150, 0.1f, 150);
         collider.center = Vector3.zero;
 
         // Tag and layer

@@ -24,8 +24,8 @@ public class SkaterController : MonoBehaviour
 
     [Header("Ground Detection")]
     [SerializeField] public LayerMask GroundLayer;
-    [SerializeField] private float GroundRaycastDistance = 0.35f;
-    [SerializeField] private float GroundRaycastOffset = 0.1f;
+    [SerializeField] private float GroundRaycastDistance = 1.15f; // Capsule half-height is 1.0, plus 0.15 for bumps
+    [SerializeField] private float GroundRaycastOffset = 0.0f;
 
     [Header("Landing")]
     [SerializeField] private float LandingStateDuration = 0.2f;
