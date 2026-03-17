@@ -49,9 +49,6 @@ public class SkaterController : MonoBehaviour
     // Landing state
     private float _landingStateStart;
 
-    // Tracking if trick was attempted this air session
-    private bool _trickAttemptedThisAir;
-
     private void Start()
     {
         _rb = GetComponent<Rigidbody>();

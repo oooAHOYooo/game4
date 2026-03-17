@@ -30,7 +30,7 @@ namespace Camera
             {
                 Transform skaterObj = GameObject.Find("Skater")?.transform;
                 if (skaterObj == null)
-                    skaterObj = GameObject.FindObjectOfType<SkaterController>()?.transform;
+                    skaterObj = GameObject.FindFirstObjectByType<SkaterController>()?.transform;
 
                 if (skaterObj != null)
                 {

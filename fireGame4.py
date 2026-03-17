@@ -4,7 +4,15 @@ import sys
 
 def main():
     print("Firing up Game4 in Unity (Version 6000.3.9f1)...")
-    unity_path = r"C:\Program Files\Unity\Hub\Editor\6000.3.9f1\Editor\Unity.exe"
+
+    # Detect platform and set Unity path
+    if sys.platform == "win32":
+        unity_path = r"C:\Program Files\Unity\Hub\Editor\6000.3.9f1\Editor\Unity.exe"
+    elif sys.platform == "darwin":  # macOS
+        unity_path = "/Applications/Unity/Hub/Editor/6000.3.9f1/Unity.app/Contents/MacOS/Unity"
+    else:  # Linux
+        unity_path = "/opt/Unity/Hub/Editor/6000.3.9f1/Editor/Unity"
+
     # Automatically get the parent directory of this script as the project path
     project_path = os.path.dirname(os.path.abspath(__file__))
     

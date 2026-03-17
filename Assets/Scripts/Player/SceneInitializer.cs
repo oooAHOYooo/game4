@@ -202,12 +202,12 @@ public class SceneInitializer : MonoBehaviour
 
     private void SetupCamera()
     {
-        var mainCamera = Camera.main;
+        var mainCamera = UnityEngine.Camera.main;
         if (mainCamera == null)
         {
             var cameraObj = new GameObject("Main Camera");
             cameraObj.tag = "MainCamera";
-            mainCamera = cameraObj.AddComponent<Camera>();
+            mainCamera = cameraObj.AddComponent<UnityEngine.Camera>();
         }
 
         mainCamera.transform.position = new Vector3(0, 2f, -5f);
