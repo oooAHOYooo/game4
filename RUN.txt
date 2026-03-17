@@ -1,0 +1,21 @@
+🛹 SKATE 4 CLONE — QUICK LAUNCH
+
+One command:
+    ./launch.sh
+
+Then:
+    - Unity opens
+    - Scene auto-generates
+    - Play mode activates automatically
+    - Skateboard and vibe
+
+Controls:
+    W/A/S/D     Steer
+    J           Push / Kickflip
+    Space       Ollie
+    I           Shove-it
+    L           Heelflip
+
+Console shows combo counter.
+
+That's it. Have fun. 🛹
