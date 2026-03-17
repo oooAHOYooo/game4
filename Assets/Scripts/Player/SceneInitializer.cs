@@ -45,13 +45,13 @@ public class SceneInitializer : MonoBehaviour
         CreateGround();
 
         // Create skateboard rig
-        CreateSkateRig();
+        var capsule = CreateSkateRig();
 
         // Add example level pieces
         // AddExamplePieces();
 
         // Setup camera
-        SetupCamera();
+        SetupCamera(capsule);
 
         Debug.Log("[Scene] Playground initialized procedurally!");
         Debug.Log("[Controls] WASD=Steer | SPACE=Ollie(hold to charge) | J=Push/Kickflip | I=PopShoveIt | L=Heelflip");
@@ -129,7 +129,7 @@ public class SceneInitializer : MonoBehaviour
         return mesh;
     }
 
-    private void CreateSkateRig()
+    private Transform CreateSkateRig()
     {
         var rigRoot = new GameObject("SkateRig");
         rigRoot.transform.position = new Vector3(0, 1f, 0);
@@ -180,6 +180,46 @@ public class SceneInitializer : MonoBehaviour
         boardMat.color = new Color(1f, 0.3f, 0.1f); // Orange-ish
         boardRenderer.material = boardMat;
 
+        // Add Humanoid Placeholder
+        var humanoidRoot = new GameObject("Humanoid");
+        humanoidRoot.transform.parent = capsule.transform;
+        humanoidRoot.transform.localPosition = new Vector3(0, 0.5f, 0);
+
+        var bodyMesh = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        bodyMesh.name = "Torso";
+        bodyMesh.transform.parent = humanoidRoot.transform;
+        bodyMesh.transform.localPosition = new Vector3(0, 0f, 0);
+        bodyMesh.transform.localScale = new Vector3(0.4f, 0.6f, 0.2f);
+        DestroyImmediate(bodyMesh.GetComponent<Collider>()); // Let the main capsule handle physics
+
+        var headMesh = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+        headMesh.name = "Head";
+        headMesh.transform.parent = humanoidRoot.transform;
+        headMesh.transform.localPosition = new Vector3(0, 0.5f, 0);
+        headMesh.transform.localScale = new Vector3(0.3f, 0.3f, 0.3f);
+        DestroyImmediate(headMesh.GetComponent<Collider>());
+
+        var skinMat = new Material(Shader.Find("Standard")) { color = new Color(0.8f, 0.6f, 0.4f) };
+        var shirtMat = new Material(Shader.Find("Standard")) { color = new Color(0.2f, 0.4f, 0.8f) };
+        bodyMesh.GetComponent<MeshRenderer>().sharedMaterial = shirtMat;
+        headMesh.GetComponent<MeshRenderer>().sharedMaterial = skinMat;
+
+        var leftArm = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+        leftArm.name = "LeftArm";
+        leftArm.transform.parent = humanoidRoot.transform;
+        leftArm.transform.localPosition = new Vector3(-0.3f, 0.1f, 0);
+        leftArm.transform.localScale = new Vector3(0.1f, 0.3f, 0.1f);
+        DestroyImmediate(leftArm.GetComponent<Collider>());
+        leftArm.GetComponent<MeshRenderer>().sharedMaterial = shirtMat;
+
+        var rightArm = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+        rightArm.name = "RightArm";
+        rightArm.transform.parent = humanoidRoot.transform;
+        rightArm.transform.localPosition = new Vector3(0.3f, 0.1f, 0);
+        rightArm.transform.localScale = new Vector3(0.1f, 0.3f, 0.1f);
+        DestroyImmediate(rightArm.GetComponent<Collider>());
+        rightArm.GetComponent<MeshRenderer>().sharedMaterial = shirtMat;
+
         // Add scripts
         var skaterController = capsule.AddComponent<SkaterController>();
         var trickSystem = capsule.AddComponent<TrickSystem>();
@@ -198,9 +238,10 @@ public class SceneInitializer : MonoBehaviour
         }
 
         Debug.Log("[Rig] Skateboard rig created procedurally!");
+        return capsule.transform;
     }
 
-    private void SetupCamera()
+    private void SetupCamera(Transform target)
     {
         var mainCamera = UnityEngine.Camera.main;
         if (mainCamera == null)
@@ -210,10 +251,15 @@ public class SceneInitializer : MonoBehaviour
             mainCamera = cameraObj.AddComponent<UnityEngine.Camera>();
         }
 
-        mainCamera.transform.position = new Vector3(0, 2f, -5f);
-        mainCamera.transform.LookAt(new Vector3(0, 1f, 0));
+        var follow = mainCamera.GetComponent<CameraFollow>();
+        if (follow == null)
+            follow = mainCamera.gameObject.AddComponent<CameraFollow>();
 
-        Debug.Log("[Camera] Camera positioned!");
+        follow.Target = target;
+        follow.Offset = new Vector3(0, 1.5f, -3f);
+        follow.SmoothSpeed = 10f;
+
+        Debug.Log("[Camera] Camera positioned and following!");
     }
 
     private void AddExamplePieces()

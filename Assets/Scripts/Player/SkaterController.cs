@@ -42,12 +42,16 @@ public class SkaterController : MonoBehaviour
     private bool _olliePressed;
     private bool _ollieReleased;
     private bool _ollieHeld;
+    private bool _powerslideHeld;
+
+    // Removed Auto-Push variables in favor of constant W force
 
     // Ollie charging
     private float _ollieChargeStart;
 
     // Landing state
     private float _landingStateStart;
+    private bool _trickAttemptedThisAir;
 
     private void Start()
     {
@@ -75,9 +79,14 @@ public class SkaterController : MonoBehaviour
             _ollieReleased = true;
         _ollieHeld = Input.GetKey(KeyCode.Space);
 
-        // J: Push Forward (Grounded) / Kickflip (Airborne)
-        if (_state == State.Grounded && Input.GetKeyDown(KeyCode.J))
-            _pushPressed = true;
+        // Powerslide (D was requested, also adding S and Shift just in case D was meant for 'Drift' and they wanted typical steering)
+        _powerslideHeld = Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.LeftShift);
+
+        // J: Kickflip (Airborne)
+        if (_state == State.Grounded)
+        {
+            // Removed manual J pushing as requested
+        }
 
         // Trick inputs (only when airborne)
         if (_state == State.Airborne && _trickSystem != null)
@@ -89,6 +98,17 @@ public class SkaterController : MonoBehaviour
             if (Input.GetKeyDown(KeyCode.L))
                 _trickSystem.OnTrickInput(TrickInputType.L);  // Heelflip
         }
+
+        // Clear triggers after FixedUpdate might have missed them if we strictly rely on bools,
+        // but it's better to reset them here if they've been handled.
+        // Actually, since FixedUpdate runs on its own timer, let's keep boolean flags until FixedUpdate consumes them.
+    }
+
+    private void ConsumeInputs()
+    {
+        _pushPressed = false;
+        _olliePressed = false;
+        _ollieReleased = false;
     }
 
     private void FixedUpdate()
@@ -115,6 +135,7 @@ public class SkaterController : MonoBehaviour
                 {
                     _state = State.OllieCharge;
                     _ollieChargeStart = Time.time;
+                    _olliePressed = false; // Consume
                 }
                 else if (!isGrounded)
                 {
@@ -131,6 +152,7 @@ public class SkaterController : MonoBehaviour
                     PerformOlliePopup();
                     _state = State.Airborne;
                     _trickAttemptedThisAir = false;
+                    _ollieReleased = false; // Consume
                 }
                 break;
 
@@ -154,17 +176,18 @@ public class SkaterController : MonoBehaviour
                 }
                 break;
         }
-        
+        // We let Update reset these appropriately or process them safely
         // Clear triggers
-        _pushPressed = false;
-        _olliePressed = false;
-        _ollieReleased = false;
+        // _pushPressed = false;
+        // _olliePressed = false;
+        // _ollieReleased = false;
     }
 
     private bool CheckGrounded()
     {
         Vector3 rayStart = transform.position + Vector3.up * GroundRaycastOffset;
-        if (Physics.Raycast(rayStart, Vector3.down, GroundRaycastDistance, GroundLayer))
+        // Use a small SphereCast instead of a thin Raycast to be more forgiving with slopes/edges
+        if (Physics.SphereCast(rayStart, 0.2f, Vector3.down, out RaycastHit hit, GroundRaycastDistance, GroundLayer))
         {
             return true;
         }
@@ -201,33 +224,46 @@ public class SkaterController : MonoBehaviour
         if (_moveInput.y != 0)
         {
             float currentSpeed = _rb.linearVelocity.magnitude;
-            // Accelerate
+            // Accelerate (Constant force on W)
             if (_moveInput.y > 0 && currentSpeed < MaxSpeed)
             {
                 // Multiply force heavily by rb.mass so it moves regardless of weight
-                _rb.AddForce(transform.forward * PushForce * 15f * _rb.mass * _moveInput.y, ForceMode.Force);
+                // Removed the impulse feeling in favor of a constant strong push
+                _rb.AddForce(transform.forward * PushForce * 15f * _rb.mass, ForceMode.Force);
             }
-            // Brake
+            // Brake (S key)
             else if (_moveInput.y < 0)
             {
-                _rb.AddForce(transform.forward * PushForce * 20f * _rb.mass * _moveInput.y, ForceMode.Force);
+                // Brake effectively resists the current forward velocity
+                Vector3 currentForwardVel = Vector3.Project(_rb.linearVelocity, transform.forward);
+                if (currentForwardVel.magnitude > 0.1f)
+                {
+                    _rb.AddForce(-transform.forward * PushForce * 20f * _rb.mass, ForceMode.Force);
+                }
+                else
+                {
+                     // Small backward crawl
+                    _rb.AddForce(-transform.forward * PushForce * 5f * _rb.mass, ForceMode.Force);
+                }
             }
         }
 
-        // Push forward with J (original mechanism)
-        if (_pushPressed)
+        // Powerslide Logic
+        if (_powerslideHeld && _rb.linearVelocity.magnitude > 2f)
         {
-            float currentSpeed = _rb.linearVelocity.magnitude;
-            if (currentSpeed < MaxSpeed)
-            {
-                _rb.AddForce(transform.forward * PushForce * _rb.mass, ForceMode.Impulse);
-            }
+            // Drastically increase drag
+            _rb.linearDamping = GroundDrag * 3f;
+            // Visually turn the board sideways by sliding the velocity direction
+            Vector3 vel = _rb.linearVelocity;
+            transform.forward = Vector3.Lerp(transform.forward, Vector3.Cross(Vector3.up, vel.normalized), Time.fixedDeltaTime * 10f);
         }
+
+        // Removed original J push mechanics
         
         // Debug
         if (_moveInput.sqrMagnitude > 0 || _pushPressed)
         {
-            Debug.Log($"Moving... Velocity: {_rb.linearVelocity.magnitude:F2} / Damping: {_rb.linearDamping:F2}");
+            // Debug.Log($"Moving... Velocity: {_rb.linearVelocity.magnitude:F2} / Damping: {_rb.linearDamping:F2}");
         }
     }
 

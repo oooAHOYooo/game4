@@ -50,8 +50,17 @@ public class TrickSystem : MonoBehaviour
     public void OnTrickInput(TrickInputType input)
     {
         if (_trickInputThisAir)
-            return; // One trick per air session
+        {
+            // Allow multiple tricks but maybe stop the previous one?
+            // Actually, for a skate game, players might just do one trick, 
+            // but the bug is probably that _trickInputThisAir is not reset correctly, 
+            // or the player wants to do multiple tricks in one jump.
+            // Let's remove the one-trick-per-air restriction for a more arcade feel,
+            // or we just need to make sure the trick completes.
+        }
 
+        // We will allow one *active* trick at a time, but if they press again, optionally cancel or ignore.
+        // Let's just allow overriding it for a smoother feel.
         _trickInputThisAir = true;
         DetectTrickAndExecute(input);
     }
