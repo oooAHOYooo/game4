@@ -70,32 +70,32 @@ public class SkaterController : MonoBehaviour
         _olliePressed = false;
         _ollieReleased = false;
 
-        // Poll input using legacy Input system
-        // Movement
+        // === INPUT CONTROLS ===
+        // WASD: Steering / Movement
         float moveX = (Input.GetKey(KeyCode.D) ? 1 : 0) + (Input.GetKey(KeyCode.A) ? -1 : 0);
         float moveZ = (Input.GetKey(KeyCode.W) ? 1 : 0) + (Input.GetKey(KeyCode.S) ? -1 : 0);
         _moveInput = new Vector2(moveX, moveZ).normalized;
 
-        // Push (only when grounded)
-        if (_state == State.Grounded && Input.GetKeyDown(KeyCode.J))
-            _pushPressed = true;
-
-        // Ollie
+        // SPACE: Ollie (Jump) - Hold to charge for more power
         if (Input.GetKeyDown(KeyCode.Space))
             _olliePressed = true;
         if (Input.GetKeyUp(KeyCode.Space))
             _ollieReleased = true;
         _ollieHeld = Input.GetKey(KeyCode.Space);
 
+        // J: Push Forward (Grounded) / Kickflip (Airborne)
+        if (_state == State.Grounded && Input.GetKeyDown(KeyCode.J))
+            _pushPressed = true;
+
         // Trick inputs (only when airborne)
-        if (_state == State.Airborne)
+        if (_state == State.Airborne && _trickSystem != null)
         {
             if (Input.GetKeyDown(KeyCode.J))
-                _trickSystem.OnTrickInput(TrickInputType.J);
+                _trickSystem.OnTrickInput(TrickInputType.J);  // Kickflip
             if (Input.GetKeyDown(KeyCode.I))
-                _trickSystem.OnTrickInput(TrickInputType.I);
+                _trickSystem.OnTrickInput(TrickInputType.I);  // Pop ShoveIt
             if (Input.GetKeyDown(KeyCode.L))
-                _trickSystem.OnTrickInput(TrickInputType.L);
+                _trickSystem.OnTrickInput(TrickInputType.L);  // Heelflip
         }
     }
 

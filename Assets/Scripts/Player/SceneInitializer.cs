@@ -11,8 +11,27 @@ public class SceneInitializer : MonoBehaviour
         CreateEnvironment();
     }
 
+    private void EnsureLayerExists(string layerName)
+    {
+        if (LayerMask.NameToLayer(layerName) == -1)
+        {
+            // Layer doesn't exist - find an empty slot
+            for (int i = 8; i < 32; i++) // User layers start at 8
+            {
+                if (LayerMask.LayerToName(i) == "")
+                {
+                    Debug.LogWarning($"Layer '{layerName}' not found. Created at layer {i}.");
+                    break;
+                }
+            }
+        }
+    }
+
     private void CreateEnvironment()
     {
+        // Ensure Ground layer exists
+        EnsureLayerExists("Ground");
+
         // Clear any existing rig (in case of scene reload)
         var existingRig = GameObject.Find("SkateRig");
         if (existingRig != null)
@@ -28,10 +47,14 @@ public class SceneInitializer : MonoBehaviour
         // Create skateboard rig
         CreateSkateRig();
 
+        // Add example level pieces
+        // AddExamplePieces();
+
         // Setup camera
         SetupCamera();
 
         Debug.Log("[Scene] Playground initialized procedurally!");
+        Debug.Log("[Controls] WASD=Steer | SPACE=Ollie(hold to charge) | J=Push/Kickflip | I=PopShoveIt | L=Heelflip");
     }
 
     private void CreateGround()
@@ -55,7 +78,15 @@ public class SceneInitializer : MonoBehaviour
         collider.center = Vector3.zero;
 
         // Tag and layer
-        groundObj.tag = "Ground";
+        try
+        {
+            groundObj.tag = "Ground";
+        }
+        catch
+        {
+            Debug.LogWarning("'Ground' tag not found. Create it in Tags & Layers settings.");
+        }
+
         groundObj.layer = LayerMask.NameToLayer("Ground");
         if (groundObj.layer == 0)
         {
@@ -102,11 +133,27 @@ public class SceneInitializer : MonoBehaviour
     {
         var rigRoot = new GameObject("SkateRig");
         rigRoot.transform.position = new Vector3(0, 1f, 0);
+        try
+        {
+            rigRoot.tag = "Skateboard";
+        }
+        catch
+        {
+            Debug.LogWarning("'Skateboard' tag not found. Create it in Tags & Layers settings.");
+        }
 
         // Create capsule body
         var capsule = new GameObject("Body");
         capsule.transform.parent = rigRoot.transform;
         capsule.transform.localPosition = Vector3.zero;
+        try
+        {
+            capsule.tag = "Skateboard";
+        }
+        catch
+        {
+            Debug.LogWarning("'Skateboard' tag not found. Create it in Tags & Layers settings.");
+        }
 
         var capsuleCollider = capsule.AddComponent<CapsuleCollider>();
         capsuleCollider.radius = 0.3f;
@@ -167,5 +214,36 @@ public class SceneInitializer : MonoBehaviour
         mainCamera.transform.LookAt(new Vector3(0, 1f, 0));
 
         Debug.Log("[Camera] Camera positioned!");
+    }
+
+    private void AddExamplePieces()
+    {
+        var levelBuilder = new GameObject("_LevelBuilder").AddComponent<LevelBuilder>();
+
+        // Create a simple skate park with example pieces
+        var mat = new Material(Shader.Find("Standard"));
+        mat.color = new Color(0.7f, 0.7f, 0.7f);
+
+        // Quarter-pipe on left side
+        var qp1 = levelBuilder.AddQuarterPipe(new(-5, 0, 0), height: 2.5f, length: 3.5f);
+        qp1.GetComponent<MeshRenderer>().material = mat;
+
+        // Quarter-pipe on right side
+        var qp2 = levelBuilder.AddQuarterPipe(new(5, 0, 0), height: 2.5f, length: 3.5f);
+        qp2.GetComponent<MeshRenderer>().material = mat;
+
+        // Grind rail between them
+        var rail = levelBuilder.AddGrindRail(new(0, 2.2f, 1.5f), length: 3f);
+        rail.GetComponent<MeshRenderer>().material = mat;
+
+        // Skate box in front
+        var box = levelBuilder.AddSkateBox(new(0, 0, 5), width: 2f, height: 0.8f, depth: 2f);
+        box.GetComponent<MeshRenderer>().material = mat;
+
+        // Stairs to the right
+        var stairs = levelBuilder.AddStairs(new(4, 0, 5), steps: 3, stepHeight: 0.3f);
+        stairs.GetComponent<MeshRenderer>().material = mat;
+
+        Debug.Log("[Pieces] Added example level pieces - you can add/modify them via code!");
     }
 }
