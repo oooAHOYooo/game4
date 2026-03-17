@@ -65,11 +65,6 @@ public class SkaterController : MonoBehaviour
 
     private void Update()
     {
-        // Reset frame-trigger booleans
-        _pushPressed = false;
-        _olliePressed = false;
-        _ollieReleased = false;
-
         // === INPUT CONTROLS ===
         // WASD: Steering / Movement
         float moveX = (Input.GetKey(KeyCode.D) ? 1 : 0) + (Input.GetKey(KeyCode.A) ? -1 : 0);
@@ -101,6 +96,16 @@ public class SkaterController : MonoBehaviour
 
     private void FixedUpdate()
     {
+        // Out-of-bounds check
+        if (transform.position.y < -30f)
+        {
+            Debug.Log("Fell off the world! Respawning...");
+            transform.position = new Vector3(0, 5, 0);
+            _rb.linearVelocity = Vector3.zero;
+            _rb.angularVelocity = Vector3.zero;
+            _state = State.Airborne;
+        }
+
         bool isGrounded = CheckGrounded();
 
         // State transitions
@@ -152,6 +157,11 @@ public class SkaterController : MonoBehaviour
                 }
                 break;
         }
+        
+        // Clear triggers
+        _pushPressed = false;
+        _olliePressed = false;
+        _ollieReleased = false;
     }
 
     private bool CheckGrounded()
@@ -166,36 +176,78 @@ public class SkaterController : MonoBehaviour
 
     private void HandleGroundedPhysics()
     {
-        _rb.linearDamping = _state == State.OllieCharge ? GroundDrag * 2.5f : GroundDrag;
+        // Reduce damping drastically when the player is actively trying to accelerate
+        float actualDrag = GroundDrag;
+        if (_moveInput.y > 0 || _pushPressed)
+            actualDrag = 0.5f;
 
-        // Steering with WASD
-        if (_moveInput.sqrMagnitude > 0)
+        _rb.linearDamping = _state == State.OllieCharge ? actualDrag * 2.5f : actualDrag;
+
+        float actualTurnSpeed = TurnSpeed > 10f ? TurnSpeed : 150f;
+
+        // Steering with A/D
+        if (Mathf.Abs(_moveInput.x) > 0)
         {
-            Vector3 desiredDirection = (transform.right * _moveInput.x + transform.forward * _moveInput.y).normalized;
-            float targetAngle = Mathf.Atan2(desiredDirection.x, desiredDirection.z) * Mathf.Rad2Deg;
-            float currentAngle = Mathf.Atan2(transform.forward.x, transform.forward.z) * Mathf.Rad2Deg;
-            float angleDiff = Mathf.DeltaAngle(currentAngle, targetAngle);
-            float clampedAngle = Mathf.Clamp(angleDiff, -TurnSpeed * Time.fixedDeltaTime, TurnSpeed * Time.fixedDeltaTime);
+            float turnAmount = _moveInput.x * actualTurnSpeed * Time.fixedDeltaTime;
+            // Use transform.Rotate to bypass potential Rigidbody FreezeRotation constraints
+            transform.Rotate(0, turnAmount, 0, Space.World);
 
-            transform.Rotate(0, clampedAngle, 0);
+            // Redirect velocity so we follow the new forward instead of sliding sideways
+            Vector3 vel = _rb.linearVelocity;
+            float horizontalSpeed = new Vector3(vel.x, 0, vel.z).magnitude;
+            
+            // Preserve vertical momentum (gravity), modify horizontal to match new rotation
+            _rb.linearVelocity = new Vector3(transform.forward.x * horizontalSpeed, vel.y, transform.forward.z * horizontalSpeed);
         }
 
-        // Push forward
+        // Accelerate / Brake with W/S
+        if (_moveInput.y != 0)
+        {
+            float currentSpeed = _rb.linearVelocity.magnitude;
+            // Accelerate
+            if (_moveInput.y > 0 && currentSpeed < MaxSpeed)
+            {
+                // Multiply force heavily by rb.mass so it moves regardless of weight
+                _rb.AddForce(transform.forward * PushForce * 15f * _rb.mass * _moveInput.y, ForceMode.Force);
+            }
+            // Brake
+            else if (_moveInput.y < 0)
+            {
+                _rb.AddForce(transform.forward * PushForce * 20f * _rb.mass * _moveInput.y, ForceMode.Force);
+            }
+        }
+
+        // Push forward with J (original mechanism)
         if (_pushPressed)
         {
             float currentSpeed = _rb.linearVelocity.magnitude;
             if (currentSpeed < MaxSpeed)
             {
-                _rb.AddForce(transform.forward * PushForce, ForceMode.Impulse);
+                _rb.AddForce(transform.forward * PushForce * _rb.mass, ForceMode.Impulse);
             }
+        }
+        
+        // Debug
+        if (_moveInput.sqrMagnitude > 0 || _pushPressed)
+        {
+            Debug.Log($"Moving... Velocity: {_rb.linearVelocity.magnitude:F2} / Damping: {_rb.linearDamping:F2}");
         }
     }
 
     private void HandleAirbornePhysics()
     {
         _rb.linearDamping = AirDrag;
+        
+        float actualTurnSpeed = TurnSpeed > 10f ? TurnSpeed : 150f;
 
-        // Weak mid-air steering influence
+        // Mid-air rotation (A/D)
+        if (Mathf.Abs(_moveInput.x) > 0)
+        {
+            float turnAmount = _moveInput.x * actualTurnSpeed * Time.fixedDeltaTime;
+            transform.Rotate(0, turnAmount, 0, Space.World);
+        }
+
+        // Weak mid-air steering influence (W/A/S/D)
         if (_moveInput.sqrMagnitude > 0)
         {
             Vector3 influence = (transform.right * _moveInput.x + transform.forward * _moveInput.y).normalized * 5f;
