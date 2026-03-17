@@ -37,12 +37,12 @@ public class SceneInitializer : MonoBehaviour
         if (existingRig != null)
             Destroy(existingRig);
 
+        // Only create ground if one doesn't exist (in case the user dragged the Ground prefab)
         var existingGround = GameObject.Find("Ground");
-        if (existingGround != null)
-            Destroy(existingGround);
-
-        // Create ground plane
-        CreateGround();
+        if (existingGround == null)
+        {
+            CreateGround();
+        }
 
         // Create skateboard rig
         var capsule = CreateSkateRig();

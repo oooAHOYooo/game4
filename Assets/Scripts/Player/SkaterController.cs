@@ -51,7 +51,6 @@ public class SkaterController : MonoBehaviour
 
     // Landing state
     private float _landingStateStart;
-    private bool _trickAttemptedThisAir;
 
     private void Start()
     {
@@ -140,7 +139,6 @@ public class SkaterController : MonoBehaviour
                 else if (!isGrounded)
                 {
                     _state = State.Airborne;
-                    _trickAttemptedThisAir = false;
                 }
                 break;
 
@@ -151,7 +149,6 @@ public class SkaterController : MonoBehaviour
                 {
                     PerformOlliePopup();
                     _state = State.Airborne;
-                    _trickAttemptedThisAir = false;
                     _ollieReleased = false; // Consume
                 }
                 break;
